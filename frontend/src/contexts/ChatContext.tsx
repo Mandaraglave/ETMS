@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useReducer, useEffect } from 'react';
+import React, { createContext, useContext, useReducer, useEffect, useCallback } from 'react';
 import { useSocket } from './SocketContext';
 
 interface Message {
@@ -118,41 +118,6 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [state, dispatch] = useReducer(chatReducer, initialState);
   const socket = useSocket();
 
-  // Load conversations on mount and when auth state changes
-  useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      loadConversations();
-    }
-  }, []);
-
-  // Listen for new messages
-  useEffect(() => {
-    if (socket) {
-      socket.on('newMessage', (message: Message) => {
-        dispatch({ type: 'ADD_MESSAGE', payload: message });
-        
-        // Update conversations if message is from current selected user
-        if (state.selectedUser && message.sender._id === state.selectedUser._id) {
-          // Mark as read if we're in the chat
-          markAsRead(message.sender._id);
-        } else {
-          // Update conversation list to show new message - but only if it's a new conversation
-          const conversationExists = state.conversations.some(conv => conv.user._id === message.sender._id);
-          if (!conversationExists) {
-            loadConversations();
-          }
-        }
-      });
-
-      return () => {
-        socket.off('newMessage');
-      };
-    }
-  }, [socket, state.selectedUser, state.conversations]);
-
-  // Remove automatic refresh on message changes - let socket handle updates
-
   const sendMessage = async (receiverId: string, message: string) => {
     try {
       dispatch({ type: 'SET_LOADING', payload: true });
@@ -182,7 +147,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const loadConversations = async () => {
+  const loadConversations = useCallback(async () => {
     try {
       dispatch({ type: 'SET_LOADING', payload: true });
       
@@ -221,7 +186,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } finally {
       dispatch({ type: 'SET_LOADING', payload: false });
     }
-  };
+  }, []);
 
   const loadMessages = async (userId: string) => {
     try {
@@ -246,7 +211,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const markAsRead = async (userId: string) => {
+  const markAsRead = useCallback(async (userId: string) => {
     try {
       await fetch(`http://localhost:5000/api/chat/read/${userId}`, {
         method: 'PUT',
@@ -261,7 +226,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (error) {
       console.error('Failed to mark messages as read:', error);
     }
-  };
+  }, [loadConversations]);
 
   const selectUser = (user: any) => {
     dispatch({ type: 'SET_SELECTED_USER', payload: user });
@@ -298,6 +263,39 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
       dispatch({ type: 'SET_LOADING', payload: false });
     }
   };
+
+  // Load conversations on mount and when auth state changes
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      loadConversations();
+    }
+  }, [loadConversations]);
+
+  // Listen for new messages
+  useEffect(() => {
+    if (socket) {
+      socket.on('newMessage', (message: Message) => {
+        dispatch({ type: 'ADD_MESSAGE', payload: message });
+        
+        // Update conversations if message is from current selected user
+        if (state.selectedUser && message.sender._id === state.selectedUser._id) {
+          // Mark as read if we're in the chat
+          markAsRead(message.sender._id);
+        } else {
+          // Update conversation list to show new message - but only if it's a new conversation
+          const conversationExists = state.conversations.some(conv => conv.user._id === message.sender._id);
+          if (!conversationExists) {
+            loadConversations();
+          }
+        }
+      });
+
+      return () => {
+        socket.off('newMessage');
+      };
+    }
+  }, [socket, state.selectedUser, state.conversations, markAsRead, loadConversations]);
 
   return (
     <ChatContext.Provider

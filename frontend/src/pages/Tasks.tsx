@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   Typography,
@@ -66,11 +66,7 @@ const Tasks: React.FC = () => {
   const [sortBy, setSortBy] = useState<'dueDate' | 'priority' | 'status'>('dueDate');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
 
-  useEffect(() => {
-    fetchTasks();
-  }, [searchTerm, statusFilter, priorityFilter, assignedToFilter, dateFilter, sortBy, sortOrder]);
-
-  const fetchTasks = async () => {
+  const fetchTasks = useCallback(async () => {
     setLoading(true);
     setError(null);
     
@@ -134,7 +130,11 @@ const Tasks: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [searchTerm, statusFilter, priorityFilter, assignedToFilter, dateFilter, sortBy, sortOrder]);
+
+  useEffect(() => {
+    fetchTasks();
+  }, [fetchTasks]);
 
   const handleMenuClick = (event: React.MouseEvent<HTMLElement>, task: Task) => {
     setAnchorEl(event.currentTarget);

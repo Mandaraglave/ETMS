@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import {
-  Grid,
   Card,
   CardContent,
   Typography,
@@ -21,13 +20,11 @@ import {
   Add,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../../contexts/AuthContext';
 import { DashboardStats, Task } from '../../types';
 import apiService from '../../services/api';
 
 const AdminDashboard: React.FC = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
   const [stats, setStats] = useState<DashboardStats>({});
   const [recentTasks, setRecentTasks] = useState<Task[]>([]);
   const [isLoading, setIsLoading] = useState(true);

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useReducer, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useReducer, useEffect, useCallback, ReactNode } from 'react';
 import { Notification } from '../types';
 import apiService from '../services/api';
 import socketService from '../services/socket';
@@ -101,7 +101,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
   const [state, dispatch] = useReducer(notificationReducer, initialState);
   const { isAuthenticated, user } = useAuth();
   
-  const fetchNotifications = async (page = 1, limit = 10) => {
+  const fetchNotifications = useCallback(async (page = 1, limit = 10) => {
     try {
       dispatch({ type: 'SET_LOADING', payload: true });
       const response = await apiService.getNotifications(page, limit);
@@ -116,7 +116,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
       console.error('Failed to fetch notifications:', error);
       dispatch({ type: 'SET_LOADING', payload: false });
     }
-  };
+  }, []);
 
   useEffect(() => {
     // Only set up notifications when user is authenticated
@@ -144,7 +144,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
     return () => {
       socketService.removeNotificationCallback(handleNotification);
     };
-  }, [isAuthenticated, user]);
+  }, [isAuthenticated, user, fetchNotifications]);
 
   const markAsRead = async (id: string) => {
     try {

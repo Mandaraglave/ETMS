@@ -26,7 +26,7 @@ const Login: React.FC = () => {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const { login, setAuthState } = useAuth();
+  const { setAuthState } = useAuth();
 
   // Load saved email on component mount
   useEffect(() => {

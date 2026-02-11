@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   Box,
   Typography,
@@ -33,13 +33,13 @@ const Chat: React.FC = () => {
   const [showNewConversation, setShowNewConversation] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const scrollToBottom = () => {
+  const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
+  }, []);
 
   useEffect(() => {
     scrollToBottom();
-  }, [state.currentMessages]);
+  }, [state.currentMessages, scrollToBottom]);
 
   useEffect(() => {
     if (isAuthenticated) {

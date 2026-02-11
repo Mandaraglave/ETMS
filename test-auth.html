@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Auth Test</title>
+</head>
+<body>
+    <h1>Authentication Test</h1>
+    <p>Use these credentials to test:</p>
+    <ul>
+        <li><strong>Email:</strong> admin@etms.com</li>
+        <li><strong>Password:</strong> Admin@123</li>
+    </ul>
+    
+    <h2>Test Login API</h2>
+    <button onclick="testLogin()">Test Login</button>
+    <div id="result"></div>
+
+    <script>
+        async function testLogin() {
+            const resultDiv = document.getElementById('result');
+            
+            try {
+                const response = await fetch('http://localhost:5000/api/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        email: 'admin@etms.com',
+                        password: 'Admin@123'
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    resultDiv.innerHTML = `
+                        <h3>✅ Login Successful!</h3>
+                        <p><strong>Token:</strong> ${data.token.substring(0, 50)}...</p>
+                        <p><strong>User:</strong> ${data.user.name} (${data.user.role})</p>
+                        <p><strong>Email:</strong> ${data.user.email}</p>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <h3>❌ Login Failed</h3>
+                        <p><strong>Error:</strong> ${data.message}</p>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <h3>❌ Network Error</h3>
+                    <p><strong>Error:</strong> ${error.message}</p>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>

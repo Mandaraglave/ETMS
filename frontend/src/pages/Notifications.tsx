@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   Typography,
@@ -47,9 +47,13 @@ const NotificationsPage: React.FC = () => {
   const [filter, setFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
 
-  useEffect(() => {
+  const loadNotifications = useCallback(() => {
     fetchNotifications(1, 50);
-  }, [filter, searchTerm]);
+  }, [fetchNotifications]);
+
+  useEffect(() => {
+    loadNotifications();
+  }, [filter, searchTerm, loadNotifications]);
 
   const getNotificationIcon = (type: string) => {
     switch (type) {

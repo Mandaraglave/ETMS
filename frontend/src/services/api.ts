@@ -1,7 +1,10 @@
 import axios, { AxiosInstance, AxiosResponse } from 'axios';
 import { LoginCredentials, RegisterData, User, Task, DashboardStats, TaskFormData, TaskFilters, UserFilters } from '../types';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+// const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+const API_BASE_URL =
+  (process.env.REACT_APP_API_URL || 'http://localhost:5000') + '/api';
+
 const BACKEND_BASE = API_BASE_URL.replace(/\/api\/?$/, '');
 
 export const getAvatarUrl = (path: string | undefined): string | undefined => {
