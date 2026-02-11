@@ -256,6 +256,8 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
 
       dispatch({ type: 'MARK_MESSAGES_READ', payload: userId });
+      // Refresh conversations to update unread count
+      loadConversations();
     } catch (error) {
       console.error('Failed to mark messages as read:', error);
     }
