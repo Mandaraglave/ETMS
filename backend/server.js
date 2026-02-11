@@ -25,6 +25,7 @@ const server = http.createServer(app);
 ================================= */
 const allowedOrigins = [
   "http://localhost:3000",
+  "https://etms-pc4e.vercel.app",
   process.env.FRONTEND_URL // production frontend
 ];
 
