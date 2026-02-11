@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Login</title>
+</head>
+<body>
+    <h1>Test Login Form</h1>
+    <form id="loginForm">
+        <input type="email" id="email" placeholder="Email" required><br><br>
+        <input type="password" id="password" placeholder="Password" required><br><br>
+        <select id="role">
+            <option value="admin">Admin</option>
+            <option value="employee">Employee</option>
+        </select><br><br>
+        <button type="button" onclick="testLogin()">Test Login</button>
+    </form>
+    
+    <h2>Results:</h2>
+    <div id="results"></div>
+    
+    <script>
+        async function testLogin() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const role = document.getElementById('role').value;
+            
+            console.log('Sending:', { email, password: '***', role });
+            
+            try {
+                const response = await fetch('http://localhost:5000/api/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ email, password, role })
+                });
+                
+                const result = await response.json();
+                console.log('Response:', result);
+                
+                document.getElementById('results').innerHTML = `
+                    <h3>Login Result:</h3>
+                    <p><strong>Status:</strong> ${response.status}</p>
+                    <p><strong>Message:</strong> ${result.message || 'No message'}</p>
+                    <p><strong>User:</strong> ${JSON.stringify(result.user || 'No user')}</p>
+                    <p><strong>Token:</strong> ${result.token || 'No token'}</p>
+                `;
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('results').innerHTML = `<p style="color: red;">Error: ${error.message}</p>`;
+            }
+        }
+    </script>
+</body>
+</html>
