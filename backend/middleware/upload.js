@@ -5,11 +5,15 @@ const fs = require('fs');
 // Create uploads directory if it doesn't exist
 const uploadsDir = path.join(__dirname, '../uploads');
 const avatarsDir = path.join(__dirname, '../uploads/avatars');
+const attendancePhotosDir = path.join(__dirname, '../uploads/attendance-photos');
 if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
 }
 if (!fs.existsSync(avatarsDir)) {
   fs.mkdirSync(avatarsDir, { recursive: true });
+}
+if (!fs.existsSync(attendancePhotosDir)) {
+  fs.mkdirSync(attendancePhotosDir, { recursive: true });
 }
 
 // Configure multer for file uploads
@@ -119,4 +123,43 @@ const uploadAvatarMiddleware = (req, res, next) => {
   });
 };
 
-module.exports = { uploadSingle, uploadMultiple, uploadAvatarMiddleware };
+// Attendance photo upload: single image, max 3MB, store in uploads/attendance-photos
+const attendancePhotoStorage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, attendancePhotosDir),
+  filename: (req, file, cb) => {
+    const timestamp = Date.now();
+    const userId = req.user?.id || 'unknown';
+    const ext = path.extname(file.originalname).toLowerCase();
+    cb(null, `attendance_${userId}_${timestamp}${ext}`);
+  }
+});
+
+const attendancePhotoFilter = (req, file, cb) => {
+  const allowed = /jpeg|jpg|png|gif|webp/;
+  const ext = path.extname(file.originalname).toLowerCase().slice(1);
+  const mimetype = file.mimetype.startsWith('image/');
+  if (allowed.test(ext) && mimetype) return cb(null, true);
+  cb(new Error('Only images (JPEG, PNG, GIF, WebP) are allowed.'));
+};
+
+const uploadAttendancePhoto = multer({
+  storage: attendancePhotoStorage,
+  limits: { fileSize: 3 * 1024 * 1024 }, // 3MB
+  fileFilter: attendancePhotoFilter
+}).single('photo');
+
+const uploadAttendancePhotoMiddleware = (req, res, next) => {
+  uploadAttendancePhoto(req, res, (err) => {
+    if (err) {
+      if (err instanceof multer.MulterError) {
+        if (err.code === 'LIMIT_FILE_SIZE') {
+          return res.status(400).json({ message: 'Photo too large. Maximum size is 3MB.' });
+        }
+      }
+      return res.status(400).json({ message: err.message });
+    }
+    next();
+  });
+};
+
+module.exports = { uploadSingle, uploadMultiple, uploadAvatarMiddleware, uploadAttendancePhotoMiddleware };

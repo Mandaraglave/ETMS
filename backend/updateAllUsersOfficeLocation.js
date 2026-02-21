@@ -10,9 +10,9 @@ async function updateAllUsersOfficeLocation() {
       name: 'City Vista Office',
       address: 'City Vista, A 305, Downtown Rd, Ashoka Nagar, Kharadi, Pune, Maharashtra 411014, India',
       coordinates: {
-        latitude: 8.560799,
-        longitude: 105.944565,
-        radius: 500
+        latitude: 18.560796,
+        longitude: 73.944559,
+        radius: 300
       },
       timezone: 'Asia/Kolkata'
     };

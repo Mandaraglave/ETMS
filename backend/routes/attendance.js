@@ -38,6 +38,8 @@ router.post('/check-in', auth, checkInValidation, attendanceController.checkIn);
 router.post('/check-out', auth, checkOutValidation, attendanceController.checkOut);
 router.get('/today', auth, attendanceController.getTodayAttendance);
 router.get('/', auth, attendanceController.getAttendance);
+router.get('/all', auth, attendanceController.getAllAttendance);
+router.get('/office-location', auth, attendanceController.getOfficeLocation);
 
 module.exports = router;
 

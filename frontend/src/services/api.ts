@@ -1,7 +1,7 @@
 import axios, { AxiosInstance, AxiosResponse } from 'axios';
 import { LoginCredentials, RegisterData, User, Task, DashboardStats, TaskFormData, TaskFilters, UserFilters } from '../types';
 
-// const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+//const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 const API_BASE_URL =
   (process.env.REACT_APP_API_URL || 'http://localhost:5000') + '/api';
 
@@ -359,6 +359,11 @@ class ApiService {
     if (endDate) params.append('endDate', endDate);
     if (userId) params.append('userId', userId);
     const response = await this.api.get(`/attendance/all?${params}`);
+    return response.data;
+  }
+
+  async getOfficeLocation() {
+    const response = await this.api.get('/attendance/office-location');
     return response.data;
   }
 }

@@ -6,8 +6,8 @@ mongoose.connect('mongodb://127.0.0.1:27017/etms').then(async () => {
     { email: 'admin@etms.com' },
     { 
       $set: { 
-        'officeLocation.coordinates.latitude': 8.560792,
-        'officeLocation.coordinates.longitude': 105.944565,
+        'officeLocation.coordinates.latitude': 18.560796,
+        'officeLocation.coordinates.longitude': 73.944559,
         'officeLocation.name': 'City Vista Office',
         'officeLocation.address': 'City Vista, A 305, Downtown Rd, Ashoka Nagar, Kharadi, Pune, Maharashtra 411014, India'
       }

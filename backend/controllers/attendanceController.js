@@ -306,7 +306,14 @@ const getAttendance = async (req, res) => {
     const { page = 1, limit = 10, startDate, endDate, userId } = req.query;
     const query = {};
     
-    if (userId) query.user = userId;
+    // If userId is provided, use it (for admin viewing specific employee)
+    // Otherwise, filter by the logged-in user's ID (for employees viewing their own records)
+    if (userId) {
+      query.user = userId;
+    } else {
+      // Default to showing only the logged-in user's attendance
+      query.user = req.user.id;
+    }
     if (startDate && endDate) {
       query.date = {
         $gte: new Date(startDate),
@@ -393,9 +400,81 @@ const getTodayAttendance = async (req, res) => {
   }
 };
 
+// Get all employees' attendance (admin only)
+const getAllAttendance = async (req, res) => {
+  try {
+    // Check if user is admin
+    const user = await User.findById(req.user.id);
+    if (!user || user.role !== 'admin') {
+      return res.status(403).json({ message: 'Access denied. Admin only.' });
+    }
+
+    const { page = 1, limit = 10, startDate, endDate, userId } = req.query;
+    const query = {};
+    
+    if (userId) query.user = userId;
+    if (startDate && endDate) {
+      query.date = {
+        $gte: new Date(startDate),
+        $lte: new Date(endDate)
+      };
+    } else if (startDate || endDate) {
+      query.date = {};
+      if (startDate) {
+        const { start } = getDateRange(startDate);
+        query.date.$gte = start;
+      }
+      if (endDate) {
+        const { end } = getDateRange(endDate);
+        query.date.$lte = end;
+      }
+    }
+
+    const skip = (page - 1) * limit;
+    
+    const attendance = await Attendance.find(query)
+      .populate('user', 'name email employeeId designation department')
+      .populate('approvedBy', 'name email')
+      .sort({ date: -1 })
+      .skip(skip)
+      .limit(parseInt(limit));
+      
+    const total = await Attendance.countDocuments(query);
+    
+    res.json({
+      attendance,
+      pagination: {
+        currentPage: page,
+        totalPages: Math.ceil(total / limit),
+        totalRecords: total,
+        hasNext: page < Math.ceil(total / limit),
+        hasPrev: page > 1
+      }
+    });
+
+  } catch (error) {
+    console.error('Get all attendance error:', error);
+    res.status(500).json({ message: 'Server error fetching attendance' });
+  }
+};
+
+// Get office location configuration
+const getOfficeLocation = async (req, res) => {
+  try {
+    res.json({
+      officeLocation: OFFICE_LOCATION
+    });
+  } catch (error) {
+    console.error('Get office location error:', error);
+    res.status(500).json({ message: 'Server error fetching office location' });
+  }
+};
+
 module.exports = {
   checkIn,
   checkOut,
   getAttendance,
-  getTodayAttendance
+  getTodayAttendance,
+  getAllAttendance,
+  getOfficeLocation
 };

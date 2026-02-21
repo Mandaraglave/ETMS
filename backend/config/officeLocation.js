@@ -5,9 +5,9 @@ const OFFICE_LOCATION = {
   name: 'City Vista Office',
   address: 'City Vista, A 305, Downtown Rd, Ashoka Nagar, Kharadi, Pune, Maharashtra 411014, India',
   coordinates: {
-    latitude: 8.560792,
-    longitude: 105.944565,
-    radius: 100  // in meters
+    latitude: 18.560830,
+    longitude: 73.944559,
+    radius: 300  // in meters
   },
   timezone: 'Asia/Kolkata'
 };

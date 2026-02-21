@@ -36,6 +36,14 @@ interface LocationData {
 interface AttendanceRecord {
   _id: string;
   date: string;
+  user?: {
+    _id: string;
+    name: string;
+    email: string;
+    employeeId: string;
+    designation?: string;
+    department?: string;
+  };
   checkIn: {
     time: string;
     location: LocationData;
@@ -62,6 +70,7 @@ const Attendance: React.FC = () => {
   const [isWithinOffice, setIsWithinOffice] = useState<boolean>(false);
   const [todayAttendance, setTodayAttendance] = useState<any>(null);
   const [attendanceHistory, setAttendanceHistory] = useState<AttendanceRecord[]>([]);
+  const [officeLocation, setOfficeLocation] = useState<any>(null);
 
   // Get current location
   const getCurrentLocation = (): Promise<LocationData> => {
@@ -119,9 +128,14 @@ const Attendance: React.FC = () => {
     return R * c; // Distance in meters
   };
 
-  // Load today's attendance
+  // Load today's attendance (only for employees)
   const loadTodayAttendance = async () => {
     try {
+      if (user?.role === 'admin') {
+        // Admins don't need to see their own today's attendance
+        setTodayAttendance(null);
+        return;
+      }
       const response = await apiService.getTodayAttendance();
       setTodayAttendance(response);
     } catch (error: any) {
@@ -133,8 +147,16 @@ const Attendance: React.FC = () => {
   // Load attendance history
   const loadAttendanceHistory = async () => {
     try {
-      const response = await apiService.getAttendance();
-      setAttendanceHistory(response.attendance || []);
+      let response;
+      if (user?.role === 'admin') {
+        // Admin sees all employees' attendance
+        response = await apiService.getAllAttendance();
+        setAttendanceHistory(response.attendance || []);
+      } else {
+        // Employee sees only their own attendance
+        response = await apiService.getAttendance();
+        setAttendanceHistory(response.attendance || []);
+      }
     } catch (error: any) {
       console.error('Error loading attendance history:', error);
       setError(error?.response?.data?.message || 'Failed to load attendance history');
@@ -154,7 +176,8 @@ const Attendance: React.FC = () => {
         setError('Getting your location...');
         location = await getCurrentLocation();
         
-        // Get address for the location
+        // Get user's office location
+        const officeCoords = officeLocation?.coordinates;
         const address = await getAddressFromCoordinates(
           location.latitude,
           location.longitude
@@ -167,9 +190,9 @@ const Attendance: React.FC = () => {
       }
 
       // Check if user is within office location before allowing check-in
-      const officeLat = user?.officeLocation?.coordinates?.latitude;
-      const officeLng = user?.officeLocation?.coordinates?.longitude;
-      const radius = user?.officeLocation?.coordinates?.radius || 100;
+      const officeLat = officeLocation?.coordinates?.latitude;
+      const officeLng = officeLocation?.coordinates?.longitude;
+      const radius = officeLocation?.coordinates?.radius || 100;
       
       if (!officeLat || !officeLng) {
         setIsWithinOffice(false);
@@ -282,9 +305,21 @@ const Attendance: React.FC = () => {
     }
   };
 
+  // Load office location configuration
+  const loadOfficeLocation = async () => {
+    try {
+      const response = await apiService.getOfficeLocation();
+      setOfficeLocation(response.officeLocation);
+    } catch (error: any) {
+      console.error('Error loading office location:', error);
+      setError(error?.response?.data?.message || 'Failed to load office location');
+    }
+  };
+
   useEffect(() => {
     loadTodayAttendance();
     loadAttendanceHistory();
+    loadOfficeLocation();
   }, []);
 
   const formatTime = (dateString: string) => {
@@ -298,15 +333,16 @@ const Attendance: React.FC = () => {
   return (
     <Box sx={{ p: 3 }}>
       <Typography variant="h4" gutterBottom>
-        Attendance Management
+        {user?.role === 'admin' ? 'Employee Attendance Management' : 'Attendance Management'}
       </Typography>
 
-      {/* Today's Attendance */}
-      <Card sx={{ mb: 3 }}>
-        <CardContent>
-          <Typography variant="h6" gutterBottom>
-            Today's Attendance
-          </Typography>
+      {/* Today's Attendance - Only for Employees */}
+      {user?.role !== 'admin' && (
+        <Card sx={{ mb: 3 }}>
+          <CardContent>
+            <Typography variant="h6" gutterBottom>
+              Today's Attendance
+            </Typography>
 
           {error && (
             <Alert severity="error" sx={{ mb: 2 }}>
@@ -351,25 +387,25 @@ const Attendance: React.FC = () => {
           )}
 
           {/* Office Location Display */}
-          {user?.officeLocation && (
+          {officeLocation && (
             <Box sx={{ mb: 2, p: 2, border: '1px solid #ddd', borderRadius: 1, backgroundColor: '#f5f5f5' }}>
               <Typography variant="subtitle2" gutterBottom>
                 🏢 Office Location Details
               </Typography>
               <Typography variant="body2" color="textSecondary">
-                <strong>Name:</strong> {user.officeLocation?.name || 'N/A'}
+                <strong>Name:</strong> {officeLocation?.name || 'N/A'}
               </Typography>
               <Typography variant="body2" color="textSecondary">
-                <strong>Address:</strong> {user.officeLocation?.address || 'N/A'}
+                <strong>Address:</strong> {officeLocation?.address || 'N/A'}
               </Typography>
               <Typography variant="body2" color="textSecondary">
-                <strong>Coordinates:</strong> {user.officeLocation.coordinates?.latitude?.toFixed(6) || 'N/A'}, {user.officeLocation.coordinates?.longitude?.toFixed(6) || 'N/A'}
+                <strong>Coorbbbbbbdinates:</strong> {officeLocation.coordinates?.latitude?.toFixed(6) || 'N/A'}, {officeLocation.coordinates?.longitude?.toFixed(6) || 'N/A'}
               </Typography>
               <Typography variant="body2" color="textSecondary">
-                <strong>Radius:</strong> {user.officeLocation.coordinates?.radius || 'N/A'}m
+                <strong>Radius:</strong> {officeLocation.coordinates?.radius || 'N/A'}m
               </Typography>
               <Typography variant="body2" color="textSecondary">
-                <strong>Timezone:</strong> {user.officeLocation?.timezone || 'N/A'}
+                <strong>Timezone:</strong> {officeLocation?.timezone || 'N/A'}
               </Typography>
             </Box>
           )}
@@ -462,6 +498,22 @@ const Attendance: React.FC = () => {
           )}
         </CardContent>
       </Card>
+      )}
+
+      {/* Admin Notice */}
+      {user?.role === 'admin' && (
+        <Card sx={{ mb: 3, backgroundColor: '#f5f5f5' }}>
+          <CardContent>
+            <Typography variant="h6" gutterBottom color="primary">
+              Admin View - Employee Attendance
+            </Typography>
+            <Typography variant="body2" color="textSecondary">
+              As an administrator, you can view all employees' attendance records below. 
+              Individual check-in/check-out functionality is not available for admin accounts.
+            </Typography>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Action Buttons */}
       {success && (
@@ -474,7 +526,7 @@ const Attendance: React.FC = () => {
       <Card>
         <CardContent>
           <Typography variant="h6" gutterBottom>
-            Attendance History
+            {user?.role === 'admin' ? 'All Employees Attendance History' : 'Attendance History'}
           </Typography>
           
           {attendanceHistory.length > 0 ? (
@@ -488,6 +540,12 @@ const Attendance: React.FC = () => {
                           <Typography variant="subtitle1" component="span">
                             {formatDate(record.date)}
                           </Typography>
+                          {user?.role === 'admin' && record.user && (
+                            <Typography variant="body2" component="span" sx={{ ml: 2 }}>
+                              👤 {record.user.name} ({record.user.employeeId})
+                              {record.user.designation && ` - ${record.user.designation}`}
+                            </Typography>
+                          )}
                           <Chip
                             label={record.status}
                             color={
