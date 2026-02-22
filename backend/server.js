@@ -15,6 +15,7 @@ const reportRoutes = require('./routes/reports');
 const attendanceRoutes = require('./routes/attendance');
 const geocodingRoutes = require('./routes/geocoding');
 const chatRoutes = require('./routes/chat');
+const wfhRoutes = require('./routes/wfh');
 const { startDeadlineReminderJob } = require('./jobs/deadlineReminder');
 
 const app = express();
@@ -108,6 +109,7 @@ app.use('/api/reports', reportRoutes);
 app.use('/api/attendance', attendanceRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/geocoding', geocodingRoutes);
+app.use('/api/wfh', wfhRoutes);
 
 /* ===============================
    HEALTH CHECK

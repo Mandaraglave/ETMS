@@ -22,12 +22,16 @@ const notificationSchema = new mongoose.Schema({
   },
   type: {
     type: String,
-    enum: ['task_assigned', 'task_updated', 'task_completed', 'task_approved', 'task_rejected', 'deadline_reminder', 'system'],
+    enum: ['task_assigned', 'task_updated', 'task_completed', 'task_approved', 'task_rejected', 'deadline_reminder', 'wfh_approved', 'wfh_rejected', 'system'],
     required: true
   },
   relatedTask: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Task'
+  },
+  relatedWFHRequest: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'WFHRequest'
   },
   isRead: {
     type: Boolean,

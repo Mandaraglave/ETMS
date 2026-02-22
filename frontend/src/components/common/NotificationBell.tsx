@@ -21,6 +21,8 @@ import {
   CheckCircle,
   Warning,
   Info,
+  HomeWork,
+  Cancel,
 } from '@mui/icons-material';
 import { useNotifications } from '../../contexts/NotificationContext';
 import { useNavigate } from 'react-router-dom';
@@ -54,6 +56,8 @@ const NotificationBell: React.FC = () => {
       case 'deadline_reminder': return <Warning />;
       case 'task_approved': return <CheckCircle />;
       case 'task_rejected': return <Warning />;
+      case 'wfh_approved': return <HomeWork />;
+      case 'wfh_rejected': return <Cancel />;
       default: return <Notifications />;
     }
   };
@@ -66,6 +70,8 @@ const NotificationBell: React.FC = () => {
       case 'deadline_reminder': return 'warning';
       case 'task_approved': return 'success';
       case 'task_rejected': return 'error';
+      case 'wfh_approved': return 'success';
+      case 'wfh_rejected': return 'error';
       default: return 'default';
     }
   };
@@ -81,6 +87,11 @@ const NotificationBell: React.FC = () => {
         ? notification.relatedTask._id || notification.relatedTask.id 
         : notification.relatedTask;
       navigate(`/tasks/${taskId}`);
+    }
+    
+    // Navigate to attendance page for WFH notifications to see request status
+    if (notification.type === 'wfh_approved' || notification.type === 'wfh_rejected') {
+      navigate('/attendance');
     }
     
     handleClose();

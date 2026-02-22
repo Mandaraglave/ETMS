@@ -73,8 +73,9 @@ export interface Notification {
   sender?: User;
   title: string;
   message: string;
-  type: 'task_assigned' | 'task_updated' | 'task_completed' | 'task_approved' | 'task_rejected' | 'deadline_reminder' | 'system';
+  type: 'task_assigned' | 'task_updated' | 'task_completed' | 'task_approved' | 'task_rejected' | 'deadline_reminder' | 'wfh_approved' | 'wfh_rejected' | 'system';
   relatedTask?: Task;
+  relatedWFHRequest?: any;
   isRead: boolean;
   readAt?: string;
   createdAt: string;

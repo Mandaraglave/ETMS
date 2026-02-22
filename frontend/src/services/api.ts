@@ -1,9 +1,8 @@
 import axios, { AxiosInstance, AxiosResponse } from 'axios';
 import { LoginCredentials, RegisterData, User, Task, DashboardStats, TaskFormData, TaskFilters, UserFilters } from '../types';
 
-//const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
-const API_BASE_URL =
-  (process.env.REACT_APP_API_URL || 'http://localhost:5000') + '/api';
+// const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+const API_BASE_URL =(process.env.REACT_APP_API_URL || 'http://localhost:5000') + '/api';
 
 const BACKEND_BASE = API_BASE_URL.replace(/\/api\/?$/, '');
 
@@ -295,6 +294,53 @@ class ApiService {
   async getDailyReports(date?: string) {
     const params = date ? `?date=${date}` : '';
     const response = await this.api.get(`/reports/daily${params}`);
+    return response.data;
+  }
+
+  // WFH request endpoints
+  async createWFHRequest(requestData: { date: string; reason: string }) {
+    const response = await this.api.post('/wfh/request', requestData);
+    return response.data;
+  }
+
+  async getUserWFHRequests(page = 1, limit = 10, status?: string) {
+    const params = new URLSearchParams();
+    params.append('page', page.toString());
+    params.append('limit', limit.toString());
+    if (status) params.append('status', status);
+    
+    const response = await this.api.get(`/wfh/my-requests?${params}`);
+    return response.data;
+  }
+
+  async getAllWFHRequests(page = 1, limit = 10, status?: string, userId?: string) {
+    const params = new URLSearchParams();
+    params.append('page', page.toString());
+    params.append('limit', limit.toString());
+    if (status) params.append('status', status);
+    if (userId) params.append('userId', userId);
+    
+    const response = await this.api.get(`/wfh/all-requests?${params}`);
+    return response.data;
+  }
+
+  async approveWFHRequest(requestId: string) {
+    const response = await this.api.put(`/wfh/approve/${requestId}`);
+    return response.data;
+  }
+
+  async rejectWFHRequest(requestId: string, rejectionReason?: string) {
+    const response = await this.api.put(`/wfh/reject/${requestId}`, { rejectionReason });
+    return response.data;
+  }
+
+  async getWFHRequestById(requestId: string) {
+    const response = await this.api.get(`/wfh/request/${requestId}`);
+    return response.data;
+  }
+
+  async checkTodayWFHStatus() {
+    const response = await this.api.get('/wfh/today-status');
     return response.data;
   }
 

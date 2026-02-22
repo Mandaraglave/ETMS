@@ -18,6 +18,7 @@ import {
   Pending,
   Warning,
   Add,
+  HomeWork,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { DashboardStats, Task } from '../../types';
@@ -243,6 +244,14 @@ const AdminDashboard: React.FC = () => {
                 onClick={() => navigate('/notifications')}
               >
                 Notifications
+              </Button>
+              <Button
+                variant="outlined"
+                fullWidth
+                startIcon={<HomeWork />}
+                onClick={() => navigate('/admin/wfh-requests')}
+              >
+                WFH Requests
               </Button>
             </Box>
           </Paper>

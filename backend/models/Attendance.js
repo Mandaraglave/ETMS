@@ -91,8 +91,12 @@ const attendanceSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['present', 'absent', 'late', 'early_leave', 'half_day'],
+    enum: ['present', 'absent', 'late', 'early_leave', 'half_day', 'wfh'],
     default: 'present'
+  },
+  wfhRequest: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'WFHRequest'
   },
   notes: {
     type: String,

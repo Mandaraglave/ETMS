@@ -1,5 +1,6 @@
  const Attendance = require('../models/Attendance');
 const User = require('../models/User');
+const WFHRequest = require('../models/WFHRequest');
 const OFFICE_LOCATION = require('../config/officeLocation');
 // Calculate distance between two coordinates using Haversine formula
 const calculateDistance = (lat1, lon1, lat2, lon2) => {
@@ -44,6 +45,83 @@ const checkIn = async (req, res) => {
     
     const { latitude, longitude, accuracy, address } = req.body;
     const userId = req.user.id;
+
+    // Check if user has approved WFH request for today
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const approvedWFHRequest = await WFHRequest.findOne({
+      user: userId,
+      date: today,
+      status: 'approved'
+    });
+
+    if (approvedWFHRequest) {
+      console.log('✅ User has approved WFH request for today');
+      
+      // Check if already checked in today
+      const existingAttendance = await Attendance.findOne({
+        user: userId,
+        date: {
+          $gte: today,
+          $lt: new Date(today.getTime() + 24 * 60 * 60 * 1000)
+        }
+      });
+
+      if (existingAttendance && existingAttendance.checkIn) {
+        return res.status(400).json({ 
+          message: 'Already checked in today' 
+        });
+      }
+
+      // Create WFH attendance record
+      const attendanceData = {
+        user: userId,
+        date: today,
+        checkIn: {
+          time: new Date(),
+          location: {
+            latitude: parseFloat(latitude),
+            longitude: parseFloat(longitude),
+            accuracy: parseFloat(accuracy),
+            address: address || 'Work From Home',
+            browser: getBrowserInfo(req),
+            ip: getClientIP(req)
+          },
+          isWithinOffice: false,
+          distanceFromOffice: 0
+        },
+        status: 'wfh',
+        wfhRequest: approvedWFHRequest._id
+      };
+
+      let attendance;
+      if (existingAttendance) {
+        attendance = await Attendance.findByIdAndUpdate(
+          existingAttendance._id, 
+          attendanceData, 
+          { new: true }
+        );
+      } else {
+        attendance = await Attendance.create(attendanceData);
+      }
+
+      console.log('✅ WFH Check-in successful:', {
+        userId,
+        date: today.toDateString(),
+        wfhRequestId: approvedWFHRequest._id
+      });
+
+      return res.status(201).json({
+        message: 'WFH Check-in successful',
+        attendance,
+        location: {
+          isWithinOffice: false,
+          distance: 0,
+          isWFH: true
+        }
+      });
+    }
     
     // Get user's office location
     const officeCoords = OFFICE_LOCATION.coordinates;
@@ -96,9 +174,6 @@ const checkIn = async (req, res) => {
     });
 
     // Check if already checked in today
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    
     const existingAttendance = await Attendance.findOne({
       user: userId,
       date: {

@@ -30,6 +30,7 @@ import {
   CheckCircle,
   Warning,
   Info,
+  HomeWork,
 } from '@mui/icons-material';
 import { useNotifications } from '../contexts/NotificationContext';
 
@@ -63,6 +64,8 @@ const NotificationsPage: React.FC = () => {
       case 'deadline_reminder': return <Warning />;
       case 'task_approved': return <CheckCircle />;
       case 'task_rejected': return <Warning />;
+      case 'wfh_approved': return <HomeWork />;
+      case 'wfh_rejected': return <Warning />;
       default: return <Notifications />;
     }
   };
@@ -75,6 +78,8 @@ const NotificationsPage: React.FC = () => {
       case 'deadline_reminder': return 'warning';
       case 'task_approved': return 'success';
       case 'task_rejected': return 'error';
+      case 'wfh_approved': return 'success';
+      case 'wfh_rejected': return 'error';
       default: return 'default';
     }
   };

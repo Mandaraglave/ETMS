@@ -20,6 +20,7 @@ import Profile from './pages/Profile';
 import Settings from './pages/Settings';
 import Attendance from './pages/Attendance';
 import Chat from './pages/Chat';
+import WFHManagement from './components/dashboard/WFHManagement';
 import ProtectedRoute from './components/common/ProtectedRoute';
 
 const theme = createTheme({
@@ -62,6 +63,7 @@ function App() {
                             <Route path="/profile" element={<Profile />} />
                             <Route path="/attendance" element={<Attendance />} />
                             <Route path="/chat" element={<Chat />} />
+                            <Route path="/admin/wfh-requests" element={<WFHManagement />} />
                             <Route path="/settings" element={<Settings />} />
                           </Routes>
                         </Layout>

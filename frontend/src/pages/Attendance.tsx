@@ -15,13 +15,24 @@ import {
   ListItemAvatar,
   Avatar,
   IconButton,
-  Divider
+  Divider,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  MenuItem
 } from '@mui/material';
 import {
   LocationOn,
   LocationOff,
   AccessTime,
-  ExitToApp
+  ExitToApp,
+  HomeWork,
+  CheckCircle,
+  Cancel,
+  Pending,
+  History
 } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
 import apiService from '../services/api';
@@ -61,16 +72,49 @@ interface AttendanceRecord {
   status: string;
 }
 
+interface WFHRequest {
+  _id: string;
+  user: {
+    _id: string;
+    name: string;
+    email: string;
+    employeeId: string;
+  };
+  date: string;
+  reason: string;
+  status: 'pending' | 'approved' | 'rejected';
+  approvedBy?: {
+    _id: string;
+    name: string;
+  };
+  approvedAt?: string;
+  rejectedBy?: {
+    _id: string;
+    name: string;
+  };
+  rejectedAt?: string;
+  rejectionReason?: string;
+  createdAt: string;
+}
+
 const Attendance: React.FC = () => {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [wfhSuccess, setWfhSuccess] = useState<string | null>(null);
   const [currentLocation, setCurrentLocation] = useState<LocationData | null>(null);
   const [isWithinOffice, setIsWithinOffice] = useState<boolean>(false);
   const [todayAttendance, setTodayAttendance] = useState<any>(null);
   const [attendanceHistory, setAttendanceHistory] = useState<AttendanceRecord[]>([]);
   const [officeLocation, setOfficeLocation] = useState<any>(null);
+  
+  // WFH related states
+  const [wfhDialogOpen, setWfhDialogOpen] = useState(false);
+  const [wfhDate, setWfhDate] = useState('');
+  const [wfhReason, setWfhReason] = useState('');
+  const [wfhRequests, setWfhRequests] = useState<WFHRequest[]>([]);
+  const [hasApprovedWFHToday, setHasApprovedWFHToday] = useState(false);
 
   // Get current location
   const getCurrentLocation = (): Promise<LocationData> => {
@@ -316,10 +360,83 @@ const Attendance: React.FC = () => {
     }
   };
 
+  // WFH request functions
+  const loadWFHRequests = async () => {
+    try {
+      const response = await apiService.getUserWFHRequests(1, 10);
+      const previousRequests = wfhRequests;
+      setWfhRequests(response.data);
+      
+      // Check for status changes and show appropriate messages
+      if (previousRequests.length > 0) {
+        const updatedRequests = response.data;
+        for (const updatedRequest of updatedRequests) {
+          const previousRequest = previousRequests.find(req => req._id === updatedRequest._id);
+          if (previousRequest && previousRequest.status === 'pending' && updatedRequest.status !== 'pending') {
+            if (updatedRequest.status === 'approved') {
+              setWfhSuccess(`Your WFH request for ${formatDate(updatedRequest.date)} has been approved! 🎉`);
+            } else if (updatedRequest.status === 'rejected') {
+              setWfhSuccess(`Your WFH request for ${formatDate(updatedRequest.date)} has been rejected.`);
+            }
+            // Clear the message after 5 seconds
+            setTimeout(() => setWfhSuccess(null), 5000);
+            break; // Only show the most recent status change
+          }
+        }
+      }
+    } catch (error: any) {
+      console.error('Error loading WFH requests:', error);
+    }
+  };
+
+  const checkTodayWFHStatus = async () => {
+    try {
+      const response = await apiService.checkTodayWFHStatus();
+      setHasApprovedWFHToday(response.hasApprovedWFH);
+    } catch (error: any) {
+      console.error('Error checking today WFH status:', error);
+    }
+  };
+
+  const handleWFHRequest = async () => {
+    if (!wfhDate || !wfhReason) {
+      setError('Please fill in all fields');
+      return;
+    }
+
+    if (wfhReason.length < 10) {
+      setError('Reason must be at least 10 characters long');
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+    setSuccess(null);
+
+    try {
+      const response = await apiService.createWFHRequest({
+        date: wfhDate,
+        reason: wfhReason
+      });
+
+      setSuccess('WFH request submitted successfully');
+      setWfhDialogOpen(false);
+      setWfhDate('');
+      setWfhReason('');
+      loadWFHRequests();
+    } catch (error: any) {
+      setError(error?.response?.data?.message || 'Failed to submit WFH request');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     loadTodayAttendance();
     loadAttendanceHistory();
     loadOfficeLocation();
+    loadWFHRequests();
+    checkTodayWFHStatus();
   }, []);
 
   const formatTime = (dateString: string) => {
@@ -353,6 +470,12 @@ const Attendance: React.FC = () => {
           {success && (
             <Alert severity="success" sx={{ mb: 2 }}>
               {success}
+            </Alert>
+          )}
+
+          {wfhSuccess && (
+            <Alert severity="info" sx={{ mb: 2 }}>
+              {wfhSuccess}
             </Alert>
           )}
 
@@ -409,6 +532,29 @@ const Attendance: React.FC = () => {
               </Typography>
             </Box>
           )}
+
+          {/* WFH Request Section */}
+          <Box sx={{ mb: 2 }}>
+            <Typography variant="h6" gutterBottom>
+              Work From Home Request
+            </Typography>
+            {hasApprovedWFHToday ? (
+              <Alert severity="success" sx={{ mb: 2 }}>
+                You have an approved WFH request for today. You can check in from home.
+              </Alert>
+            ) : (
+              <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
+                <Button
+                  variant="outlined"
+                  startIcon={<HomeWork />}
+                  onClick={() => setWfhDialogOpen(true)}
+                  sx={{ flex: 1 }}
+                >
+                  Request Work From Home
+                </Button>
+              </Box>
+            )}
+          </Box>
 
           {todayAttendance ? (
             <Box>
@@ -500,6 +646,89 @@ const Attendance: React.FC = () => {
       </Card>
       )}
 
+      {/* WFH Requests History - Only for Employees */}
+      {user?.role !== 'admin' && (
+        <Card sx={{ mb: 3 }}>
+          <CardContent>
+            <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <History />
+              WFH Request History
+            </Typography>
+            
+            {wfhRequests.length > 0 ? (
+              <List>
+                {wfhRequests.map((request, index) => (
+                  <div key={request._id}>
+                    <ListItem>
+                      <ListItemText
+                        primary={
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                            <Typography variant="subtitle1">
+                              {formatDate(request.date)}
+                            </Typography>
+                            <Chip
+                              icon={
+                                request.status === 'approved' ? <CheckCircle /> :
+                                request.status === 'rejected' ? <Cancel /> :
+                                <Pending />
+                              }
+                              label={request.status.charAt(0).toUpperCase() + request.status.slice(1)}
+                              color={
+                                request.status === 'approved' ? 'success' :
+                                request.status === 'rejected' ? 'error' :
+                                'warning'
+                              }
+                              size="small"
+                            />
+                          </Box>
+                        }
+                        secondary={
+                          <Box>
+                            <Typography variant="body2" color="textSecondary" sx={{ mb: 1 }}>
+                              <strong>Reason:</strong> {request.reason}
+                            </Typography>
+                            {request.status === 'approved' && request.approvedBy && (
+                              <Typography variant="body2" color="success.main">
+                                <CheckCircle sx={{ fontSize: 14, mr: 0.5, verticalAlign: 'middle' }} />
+                                Approved by {request.approvedBy.name} on {formatDate(request.approvedAt || request.createdAt)}
+                              </Typography>
+                            )}
+                            {request.status === 'rejected' && request.rejectedBy && (
+                              <Box>
+                                <Typography variant="body2" color="error.main" sx={{ mb: 0.5 }}>
+                                  <Cancel sx={{ fontSize: 14, mr: 0.5, verticalAlign: 'middle' }} />
+                                  Rejected by {request.rejectedBy.name} on {formatDate(request.rejectedAt || request.createdAt)}
+                                </Typography>
+                                {request.rejectionReason && (
+                                  <Typography variant="body2" color="textSecondary">
+                                    <strong>Reason:</strong> {request.rejectionReason}
+                                  </Typography>
+                                )}
+                              </Box>
+                            )}
+                            {request.status === 'pending' && (
+                              <Typography variant="body2" color="warning.main">
+                                <Pending sx={{ fontSize: 14, mr: 0.5, verticalAlign: 'middle' }} />
+                                Request submitted on {formatDate(request.createdAt)} - Awaiting admin approval
+                              </Typography>
+                            )}
+                          </Box>
+                        }
+                      />
+                    </ListItem>
+                    {index < wfhRequests.length - 1 && <Divider />}
+                  </div>
+                ))}
+              </List>
+            ) : (
+              <Typography variant="body2" color="textSecondary">
+                No WFH requests found. Click "Request Work From Home" to submit a new request.
+              </Typography>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
       {/* Admin Notice */}
       {user?.role === 'admin' && (
         <Card sx={{ mb: 3, backgroundColor: '#f5f5f5' }}>
@@ -547,20 +776,28 @@ const Attendance: React.FC = () => {
                             </Typography>
                           )}
                           <Chip
-                            label={record.status}
+                            label={record.status.toUpperCase()}
                             color={
                               record.status === 'present' ? 'success' :
                               record.status === 'late' ? 'warning' :
-                              record.status === 'absent' ? 'error' : 'default'
+                              record.status === 'absent' ? 'error' :
+                              record.status === 'wfh' ? 'info' : 'default'
                             }
                             size="small"
                             sx={{ ml: 1 }}
+                            icon={record.status === 'wfh' ? <HomeWork /> : undefined}
                           />
                         </Box>
                       }
                       secondary={
                         <Typography variant="body2" color="textSecondary" component="div">
                           <Box>
+                            {record.status === 'wfh' && (
+                              <Typography variant="body2" color="primary.main" component="span" sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 1 }}>
+                                <HomeWork fontSize="small" />
+                                Work From Home
+                              </Typography>
+                            )}
                             <Typography variant="body2" color="textSecondary" component="span">
                               Check-in: {record.checkIn ? formatTime(record.checkIn.time) : 'N/A'}
                             </Typography>
@@ -596,6 +833,56 @@ const Attendance: React.FC = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* WFH Request Dialog */}
+      <Dialog 
+        open={wfhDialogOpen} 
+        onClose={() => setWfhDialogOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>
+          Request Work From Home
+        </DialogTitle>
+        <DialogContent>
+          <Box sx={{ pt: 1 }}>
+            <TextField
+              fullWidth
+              label="Date"
+              type="date"
+              value={wfhDate}
+              onChange={(e) => setWfhDate(e.target.value)}
+              sx={{ mb: 2 }}
+              inputProps={{
+                min: new Date().toISOString().split('T')[0]
+              }}
+            />
+            <TextField
+              fullWidth
+              label="Reason"
+              multiline
+              rows={4}
+              value={wfhReason}
+              onChange={(e) => setWfhReason(e.target.value)}
+              placeholder="Please provide a reason for your work from home request..."
+              helperText={`${wfhReason.length}/10 characters minimum`}
+              sx={{ mb: 2 }}
+            />
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setWfhDialogOpen(false)}>
+            Cancel
+          </Button>
+          <Button 
+            onClick={handleWFHRequest}
+            variant="contained"
+            disabled={loading}
+          >
+            {loading ? 'Submitting...' : 'Submit Request'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };
